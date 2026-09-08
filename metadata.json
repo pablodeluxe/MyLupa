@@ -1,0 +1,7 @@
+{
+  "name": "Lupa",
+  "description": "Aplicación de lupa con control de zoom continuo, linterna, congelado de imagen y filtros de alto contraste.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
