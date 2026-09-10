@@ -49,7 +49,7 @@ Este proyecto está disponible bajo licencia abierta. Consulta el archivo de lic
 
 ## 👤 Autor
 
-**Pablo de Luxe** - [GitHub Profile](https://github.com/pablodeluxe)
+**Pablo Linale** - [GitHub Profile](https://github.com/pablodeluxe)
 
 ---
 
