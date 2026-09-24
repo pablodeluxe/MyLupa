@@ -6,6 +6,7 @@ import androidx.camera.view.PreviewView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.camera.CameraManager
+import com.example.model.CameraOption
 import com.example.model.FocusPoint
 import com.example.model.MagnifierUiState
 import com.example.model.VisionFilter
@@ -75,12 +76,19 @@ class MagnifierViewModel : ViewModel() {
     }
 
     fun toggleTorch(cameraManager: CameraManager?) {
-        val newState = !_uiState.value.isTorchOn
-        if (cameraManager != null && cameraManager.hasFlashUnit()) {
-            cameraManager.toggleTorch(newState)
+        val targetState = !_uiState.value.isTorchOn
+        if (cameraManager != null && cameraManager.hasAnyFlashUnit()) {
+            _uiState.update { it.copy(isTorchOn = targetState, isScreenLightActive = false) }
+            cameraManager.setTorch(targetState) { success ->
+                if (success) {
+                    _uiState.update { it.copy(isTorchOn = targetState, isScreenLightActive = false) }
+                } else {
+                    _uiState.update { it.copy(isTorchOn = false, isScreenLightActive = targetState) }
+                }
+            }
         } else {
             // If device/emulator has no hardware flash unit, toggle bright screen border illuminator!
-            _uiState.update { it.copy(isScreenLightActive = !_uiState.value.isScreenLightActive) }
+            _uiState.update { it.copy(isScreenLightActive = !_uiState.value.isScreenLightActive, isTorchOn = false) }
         }
     }
 
@@ -156,6 +164,51 @@ class MagnifierViewModel : ViewModel() {
 
     fun setCameraPermission(granted: Boolean) {
         _uiState.update { it.copy(hasCameraPermission = granted) }
+    }
+
+    fun setAvailableCameras(cameras: List<CameraOption>, selectedId: String) {
+        _uiState.update {
+            it.copy(
+                availableCameras = cameras,
+                selectedCameraId = selectedId
+            )
+        }
+    }
+
+    fun selectCamera(cameraId: String, cameraManager: CameraManager?) {
+        if (_uiState.value.selectedCameraId == cameraId) {
+            _uiState.update { it.copy(isCameraMenuExpanded = false) }
+            return
+        }
+
+        // Unfreeze if frozen so the user sees the new camera live
+        val targetCamera = _uiState.value.availableCameras.firstOrNull { it.id == cameraId }
+        val flashAvailable = targetCamera?.hasFlash ?: true
+
+        _uiState.update {
+            it.copy(
+                selectedCameraId = cameraId,
+                isCameraMenuExpanded = false,
+                isFrozen = false,
+                frozenBitmap = null,
+                isTorchOn = if (!flashAvailable) false else it.isTorchOn
+            )
+        }
+
+        cameraManager?.switchCamera(cameraId)
+    }
+
+    fun setCameraMenuExpanded(expanded: Boolean) {
+        _uiState.update { it.copy(isCameraMenuExpanded = expanded) }
+    }
+
+    fun switchNextCamera(cameraManager: CameraManager?) {
+        val list = _uiState.value.availableCameras
+        if (list.size <= 1) return
+        val currentIndex = list.indexOfFirst { it.id == _uiState.value.selectedCameraId }
+        val nextIndex = if (currentIndex < 0 || currentIndex >= list.lastIndex) 0 else currentIndex + 1
+        val nextCamera = list[nextIndex]
+        selectCamera(nextCamera.id, cameraManager)
     }
 
     fun setError(message: String) {

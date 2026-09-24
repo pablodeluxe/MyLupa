@@ -10,7 +10,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,38 +23,32 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.InvertColors
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -69,10 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -88,9 +78,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.camera.CameraManager
-import com.example.model.VisionFilter
-import com.example.ui.components.ExposureControlSheet
-import com.example.ui.components.FilterSelectorSheet
+import com.example.model.CameraOption
+import com.example.ui.components.CameraSelectorCombo
 import com.example.ui.components.FocusIndicator
 import com.example.ui.components.MagnificationBadge
 import com.example.ui.components.TorchButton
@@ -127,6 +116,9 @@ fun MagnifierScreen(
             onExposureStateChanged = { current, min, max ->
                 viewModel.updateExposureLimits(current, min, max)
             }
+            onAvailableCamerasDiscovered = { cameras, selectedId ->
+                viewModel.setAvailableCameras(cameras, selectedId)
+            }
             onError = { error ->
                 viewModel.setError(error)
             }
@@ -144,9 +136,6 @@ fun MagnifierScreen(
             cameraManager.unbind()
         }
     }
-
-    val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val exposureSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Box(
         modifier = modifier
@@ -198,13 +187,6 @@ fun MagnifierScreen(
                         )
                     }
                 }
-                .drawWithContent {
-                    drawContent()
-                    // Live filter overlay for Inverted mode
-                    if (!uiState.isFrozen && uiState.activeFilter == VisionFilter.INVERTED) {
-                        drawRect(Color.White, blendMode = BlendMode.Difference)
-                    }
-                }
         ) {
             if (!uiState.isFrozen) {
                 // Live Viewfinder
@@ -213,7 +195,7 @@ fun MagnifierScreen(
                         PreviewView(ctx).apply {
                             scaleType = PreviewView.ScaleType.FILL_CENTER
                             previewViewRef = this
-                            cameraManager.bindCamera(lifecycleOwner, this)
+                            cameraManager.bindCamera(lifecycleOwner, this, uiState.selectedCameraId)
                         }
                     },
                     modifier = Modifier.fillMaxSize()
@@ -225,7 +207,6 @@ fun MagnifierScreen(
                     Image(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = "Imagen congelada",
-                        colorFilter = uiState.activeFilter.colorFilter,
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
@@ -267,29 +248,20 @@ fun MagnifierScreen(
             }
         }
 
-        // 2. Top Header Bar
+        // 2. Top Header Bar: Logo + Combo de selección de cámara a la derecha (sin botones a la derecha)
         TopBar(
-            onOpenExposure = { viewModel.setExposureSheetVisible(true) },
-            onOpenFilters = { viewModel.setFilterSheetVisible(true) },
-            onOpenHelp = { viewModel.setHelpVisible(true) },
-            activeFilter = uiState.activeFilter,
+            availableCameras = uiState.availableCameras,
+            selectedCameraId = uiState.selectedCameraId,
+            isCameraMenuExpanded = uiState.isCameraMenuExpanded,
+            onCameraMenuExpandedChange = { viewModel.setCameraMenuExpanded(it) },
+            onCameraSelected = { viewModel.selectCamera(it, cameraManager) },
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.statusBars)
         )
 
-        // 3. Floating Magnification Badge
-        MagnificationBadge(
-            zoomRatio = uiState.zoomRatio,
-            isFrozen = uiState.isFrozen,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 70.dp)
-                .windowInsetsPadding(WindowInsets.statusBars)
-        )
-
-        // 4. Bottom Control Stack
+        // 3. Bottom Control Stack
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -307,7 +279,7 @@ fun MagnifierScreen(
                 onStepZoom = { viewModel.stepZoom(it, cameraManager) }
             )
 
-            // Primary Action Dock (Linterna, Congelar, Filtro rápido)
+            // Primary Action Dock (Linterna, Botón de disparo y Nivel de zoom a su derecha)
             PrimaryActionDock(
                 isTorchOn = uiState.isTorchOn,
                 isScreenLightActive = uiState.isScreenLightActive,
@@ -317,32 +289,7 @@ fun MagnifierScreen(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     viewModel.toggleFreeze(previewViewRef, cameraManager)
                 },
-                activeFilter = uiState.activeFilter,
-                onCycleFilter = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    viewModel.cycleNextFilter()
-                }
-            )
-        }
-
-        // 5. Modal Sheets & Dialogs
-        if (uiState.isFilterSheetVisible) {
-            FilterSelectorSheet(
-                activeFilter = uiState.activeFilter,
-                onSelectFilter = { viewModel.setVisionFilter(it) },
-                onDismiss = { viewModel.setFilterSheetVisible(false) },
-                sheetState = filterSheetState
-            )
-        }
-
-        if (uiState.isExposureControlVisible) {
-            ExposureControlSheet(
-                exposureIndex = uiState.exposureCompensationIndex,
-                minExposure = uiState.minExposure,
-                maxExposure = uiState.maxExposure,
-                onExposureChanged = { viewModel.setExposureCompensation(it, cameraManager) },
-                onDismiss = { viewModel.setExposureSheetVisible(false) },
-                sheetState = exposureSheetState
+                zoomRatio = uiState.zoomRatio
             )
         }
 
@@ -385,20 +332,21 @@ fun MagnifierScreen(
 
 @Composable
 private fun TopBar(
-    onOpenExposure: () -> Unit,
-    onOpenFilters: () -> Unit,
-    onOpenHelp: () -> Unit,
-    activeFilter: VisionFilter,
+    availableCameras: List<CameraOption>,
+    selectedCameraId: String?,
+    isCameraMenuExpanded: Boolean,
+    onCameraMenuExpandedChange: (Boolean) -> Unit,
+    onCameraSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // App Title / Brand
+        // App Title / Brand (Logo)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -427,76 +375,15 @@ private fun TopBar(
             )
         }
 
-        // Action Icons
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Brightness / Exposure Button
-            TopBarButton(
-                icon = Icons.Default.Brightness6,
-                contentDescription = "Ajustar brillo",
-                onClick = onOpenExposure,
-                testTag = "exposure_button"
-            )
+        Spacer(modifier = Modifier.width(10.dp))
 
-            // Filter button with active indicator
-            TopBarButton(
-                icon = Icons.Default.InvertColors,
-                contentDescription = "Modos de contraste",
-                onClick = onOpenFilters,
-                isActive = activeFilter != VisionFilter.NORMAL,
-                testTag = "filters_button"
-            )
-
-            // Help button
-            TopBarButton(
-                icon = Icons.Default.HelpOutline,
-                contentDescription = "Instrucciones de uso",
-                onClick = onOpenHelp,
-                testTag = "help_button"
-            )
-        }
-    }
-}
-
-@Composable
-private fun TopBarButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    isActive: Boolean = false,
-    testTag: String = ""
-) {
-    val haptic = LocalHapticFeedback.current
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .size(42.dp)
-            .clip(CircleShape)
-            .background(if (isActive) CyanFocus.copy(alpha = 0.2f) else Slate900.copy(alpha = 0.75f))
-            .border(
-                width = 1.dp,
-                color = if (isActive) CyanFocus else Slate700,
-                shape = CircleShape
-            )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onClick()
-                }
-            )
-            .minimumInteractiveComponentSize()
-            .testTag(testTag)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = if (isActive) CyanFocus else Color.White,
-            modifier = Modifier.size(20.dp)
+        // Combo de selección de cámara a la derecha del logo
+        CameraSelectorCombo(
+            availableCameras = availableCameras,
+            selectedCameraId = selectedCameraId,
+            isExpanded = isCameraMenuExpanded,
+            onExpandedChange = onCameraMenuExpandedChange,
+            onCameraSelected = onCameraSelected
         )
     }
 }
@@ -508,8 +395,7 @@ private fun PrimaryActionDock(
     onToggleTorch: () -> Unit,
     isFrozen: Boolean,
     onToggleFreeze: () -> Unit,
-    activeFilter: VisionFilter,
-    onCycleFilter: () -> Unit,
+    zoomRatio: Float,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -520,24 +406,38 @@ private fun PrimaryActionDock(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Flashlight Button
+        // Flashlight Button (Izquierda)
         TorchButton(
             isTorchOn = isTorchOn,
             onToggleTorch = onToggleTorch,
             isScreenLightActive = isScreenLightActive
         )
 
-        // Center Freeze / Resume Shutter
+        // Center Freeze / Resume Shutter (Botón de disparo)
         FreezeButton(
             isFrozen = isFrozen,
             onClick = onToggleFreeze
         )
 
-        // Quick Filter Cycle Button
-        QuickFilterButton(
-            activeFilter = activeFilter,
-            onClick = onCycleFilter
-        )
+        // Zoom level indicator (A la derecha del botón de disparo)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.widthIn(min = 68.dp)
+        ) {
+            MagnificationBadge(
+                zoomRatio = zoomRatio,
+                isFrozen = isFrozen
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Aumento",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                color = if (isFrozen) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -603,63 +503,6 @@ private fun FreezeButton(
                 fontWeight = if (isFrozen) FontWeight.Bold else FontWeight.Normal
             ),
             color = if (isFrozen) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun QuickFilterButton(
-    activeFilter: VisionFilter,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val haptic = LocalHapticFeedback.current
-    val isFiltered = activeFilter != VisionFilter.NORMAL
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(if (isFiltered) Slate800 else Slate900)
-                .border(
-                    width = if (isFiltered) 2.dp else 1.dp,
-                    color = if (isFiltered) CyanFocus else Slate700,
-                    shape = CircleShape
-                )
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = true, color = CyanFocus),
-                    role = Role.Button,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onClick()
-                    }
-                )
-                .minimumInteractiveComponentSize()
-                .testTag("quick_filter_button")
-        ) {
-            Icon(
-                imageVector = Icons.Default.InvertColors,
-                contentDescription = "Cambiar filtro visual",
-                tint = if (isFiltered) CyanFocus else Color.White,
-                modifier = Modifier.size(26.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = activeFilter.title,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
-                fontWeight = if (isFiltered) FontWeight.Bold else FontWeight.Normal
-            ),
-            color = if (isFiltered) CyanFocus else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -742,8 +585,8 @@ private fun HelpDialog(onDismiss: () -> Unit) {
                     description = "Toca cualquier punto de la pantalla para enfocar nítidamente las letras."
                 )
                 HelpItem(
-                    title = "Modos de Contraste",
-                    description = "Cambia a Alto Contraste o Invertido para leer texto pequeño con mayor comodidad visual."
+                    title = "Selección de Cámara",
+                    description = "Si tu teléfono tiene más de una cámara (gran angular, macro, principal o frontal), usa el combo superior para elegir la mejor lente según el objeto a enfocar."
                 )
             }
         },

@@ -1,56 +1,47 @@
-# MyLupa
+# Lupa Digital y Amplificador Inteligente (Android)
 
-Una aplicación Android que transforma tu teléfono en una lupa digital avanzada con múltiples funcionalidades para mejorar la visibilidad y accesibilidad.
-
-## 📋 Descripción del Proyecto
-
-**MyLupa** es una aplicación desarrollada en Kotlin que proporciona herramientas de amplificación visual mediante la cámara de tu dispositivo Android. La aplicación integra inteligencia artificial avanzada mediante la API Gemini del lado del servidor para ofrecerle una experiencia completa y eficiente.
-
-Esta herramienta es especialmente útil para personas con problemas de visión, facilitando la lectura de textos pequeños, documentos, etiquetas y otros contenidos visuales de difícil acceso.
-
-## ✨ Funcionalidades
-
-- **🔍 Control de Zoom Continuo**: Ajusta el nivel de ampliación de forma fluida y continua para obtener la visualización perfecta según tus necesidades.
-
-- **💡 Linterna Integrada**: Activa la linterna de tu dispositivo para iluminar mejor el objeto que deseas observar, especialmente útil en condiciones de poca luz.
-
-- **🎬 Congelado de Imagen**: Congela el marco actual de la cámara para observar detenidamente un objeto sin que la imagen cambie. Perfecto para analizar textos o detalles.
-
-- **🎨 Filtros de Alto Contraste**: Aplica filtros especializados que aumentan el contraste visual, facilitando la distinción entre elementos y mejorando la legibilidad de textos pequeños.
-
-- **🤖 Integración con IA (Gemini API)**: Aprovecha la potencia de Google Gemini API del lado del servidor para análisis avanzado de imágenes y procesamiento inteligente.
-
-## 🛠️ Tecnología
-
-- **Lenguaje**: Kotlin
-- **Plataforma**: Android
-- **Backend**: Google Gemini API (procesamiento del lado del servidor)
-- **Tipo**: Aplicación Nativa Android
-
-## 📱 Requisitos
-
-- Android 7.0 (API 24) o superior
-- Acceso a la cámara del dispositivo
-- Permisos de cámara habilitados
-
-## 🚀 Uso
-
-1. Descarga e instala la aplicación MyLupa en tu dispositivo Android
-2. Abre la aplicación y acepta los permisos de cámara solicitados
-3. Apunta la cámara hacia el objeto o texto que deseas ver amplificado
-4. Utiliza los controles de zoom para ajustar el nivel de ampliación
-5. Activa la linterna si necesitas mejor iluminación
-6. Usa la función de congelado para pausar la imagen
-7. Aplica filtros de alto contraste si lo necesitas para mejor visibilidad
-
-## 📄 Licencia
-
-Este proyecto está disponible bajo licencia abierta. Consulta el archivo de licencia para más detalles.
-
-## 👤 Autor
-
-**Pablo Linale** - [GitHub Profile](https://github.com/pablodeluxe)
+Una aplicación moderna desarrollada en Kotlin y Jetpack Compose diseñada para transformar tu teléfono en una **lupa digital de alta precisión**. Ideal para leer letras pequeñas, examinar detalles, etiquetas de medicamentos, menús o pequeños objetos con la máxima nitidez.
 
 ---
 
-Hecho con ❤️ para mejorar la accesibilidad visual
+## 🌟 Características Principales
+
+1. **Control de Zoom Avanzado**:
+   - Barra deslizante precisa y botones de ajuste rápido (`1x`, `2x`, `3x`, `5x`, `10x`).
+   - Gestos táctiles de pellizcar con dos dedos (*pinch-to-zoom*) para acercar o alejar fluidamente.
+   - Doble toque para alternar rápidamente entre la vista normal y aumento de 3x.
+
+2. **Selección de Cámara Inteligente**:
+   - Menú desplegable integrado en la barra superior junto al título.
+   - Detecta automáticamente todas las lentes disponibles en el dispositivo (Cámara principal, Gran Angular, Macro y Frontal).
+   - Prioriza por defecto la cámara trasera principal con flash para garantizar la mejor calidad y luminosidad.
+
+3. **Linterna y Flash Trasero**:
+   - Botón dedicado de linterna en la barra de acciones inferior.
+   - Enciende de forma robusta el flash LED trasero utilizando la API de CameraX y el servicio del sistema (`CameraManager`).
+   - Incluye modo de respaldo de iluminación por bordes de pantalla para dispositivos o emuladores sin flash físico.
+
+4. **Congelamiento de Imagen (Captura y Pausa)**:
+   - Botón central de disparo para pausar el fotograma actual y leer cómodamente sin fatiga ni temblores en las manos.
+   - Permite hacer zoom y desplazar la imagen congelada.
+
+5. **Guías de Lectura y Enfoque**:
+   - Enfoque táctil interactivo con retícula animada tocando cualquier punto de la pantalla.
+   - Guías de cruce y líneas horizontales de apoyo para alinear y leer texto continuo sin desviarse.
+
+---
+
+## 🛠️ Tecnologías y Arquitectura
+
+- **UI**: Jetpack Compose y Material Design 3 (M3) con diseño oscuro de alto contraste adaptado para accesibilidad visual.
+- **Cámara**: Android CameraX (`Preview`, `CameraControl`, `CameraInfo`, `ProcessCameraProvider`) y Camera2 Interop.
+- **Arquitectura**: MVVM (Model-View-ViewModel) con flujos reactivos (`StateFlow`).
+- **Lenguaje**: Kotlin al 100% con corrutinas.
+
+---
+
+## 📱 Cómo Ejecutar / Instalar
+
+1. Clona o abre este proyecto en **Google AI Studio**.
+2. Sincroniza y compila el proyecto mediante Gradle (`compile_applet` o en Android Studio).
+3. Conecta un dispositivo Android físico o inicia el emulador integrado para disfrutar de la experiencia de lupa en tiempo real.

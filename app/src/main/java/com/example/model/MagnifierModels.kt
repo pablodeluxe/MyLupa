@@ -68,6 +68,15 @@ enum class VisionFilter(
     )
 }
 
+data class CameraOption(
+    val id: String,
+    val name: String,
+    val subtitle: String,
+    val isBackCamera: Boolean,
+    val hasFlash: Boolean,
+    val focalLengthMm: Float? = null
+)
+
 data class FocusPoint(
     val x: Float,
     val y: Float,
@@ -92,6 +101,9 @@ data class MagnifierUiState(
     val isFilterSheetVisible: Boolean = false,
     val isHelpVisible: Boolean = false,
     val hasCameraPermission: Boolean = false,
+    val availableCameras: List<CameraOption> = emptyList(),
+    val selectedCameraId: String? = null,
+    val isCameraMenuExpanded: Boolean = false,
     val focusPoint: FocusPoint? = null,
     val errorMessage: String? = null
 )
